@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "systemlink-storeandforward-beacon"
+version = "1.0"
+description = "An example salt beacon for monitoring systemlink test monitor store and forward health"
+authors = []
+
+[tool.poetry.scripts]
+systemlink-storeandforward-beacon = "systemlink-storeandforward-beacon.__main__:cli"
+
+[tool.poetry.dependencies]
+python = "^3.6.2"
+
+[tool.poetry.dev-dependencies]
+# Lint
+flake8 = ">=3.8.4"
+flake8-docstrings = ">=1.5.0"
+flake8-import-order = ">=0.18.1"
+pep8-naming = ">=0.11.1"
+black = ">=20.8b1"
+
+# Test
+pytest = ">=6.0"
+pytest-cov = ">=3.0"
+
+[[tool.poetry.source]]
+name = "NI PyPI"
+url = "https://pypi.ni.systems"
+default = true
+
+[tool.pytest.ini_options]
+# Test coverage
+addopts = "--cov systemlink-storeandforward-beacon --strict-markers --doctest-modules"
+
+[tool.black]
+line-length = 100
+
+[build-system]
+requires = [ "poetry-core>=1.0.0" ]
+build-backend = "poetry.core.masonry.api"
