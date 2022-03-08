@@ -5,10 +5,9 @@ import json
 import logging
 import os
 import random
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import quote
 import winreg
-import salt.modules.grains
 from systemlink.clients.core import HttpConfiguration
 from systemlink.clients.tag import DataType, TagData, TagManager
 
@@ -26,6 +25,18 @@ TAG_INFO: Dict[str, Dict[str, Any]] = {}
 
 BEACON_INITIALIZED = False
 
+__virtualname__: str = "systemlink_storeandforward_monitor"
+
+
+def __virtual__() -> Union[str, Tuple[bool, str]]:
+    """
+    During module lazy loading, will return the virtual name of this module.
+
+    :return: The virtual name of this module. On error, return a 2-tuple with
+        ``False`` for the first item and the error message for the second.
+    """
+    return __virtualname__
+
 
 def validate(config: List[Dict[str, Any]]) -> Tuple[bool, str]:
     """
@@ -36,7 +47,7 @@ def validate(config: List[Dict[str, Any]]) -> Tuple[bool, str]:
         configuration is valid and ``False`` otherwise. The second item
         is a message.
     """
-    return True
+    return True, "Valid beacon configuration"
 
 
 def beacon(config: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -61,6 +72,10 @@ def beacon(config: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             exc_info=True,
         )
 
+    # Always return an empty list so that nothing is sent to the master
+    # via Salt mechanisms.
+    return []
+
 
 def _init_beacon() -> bool:
     global BEACON_INITIALIZED
@@ -77,9 +92,10 @@ def _init_beacon() -> bool:
     configuration = _get_http_configuration()
     TAG_MANAGER = TagManager(configuration)
 
-    minion_id = salt.modules.grains.get("id")
-    hostname = salt.modules.grains.get("host")
-    workspace = salt.modules.grains.get("systemlink_workspace")
+    minion_id = __grains__["id"]
+    hostname = __grains__["host"]
+    workspace = __grains__["systemlink_workspace"]
+    log.debug(f"Creating beacon tags on {hostname} ({minion_id}) for workspace {workspace}")
     _setup_tags(TAG_INFO, minion_id)
     EVENT_LOOP.run_until_complete(_create_or_update_tag_metadata(minion_id, hostname, workspace))
 
@@ -103,8 +119,9 @@ def _setup_tags(tag_info: Dict[str, Dict[str, DataType]], id: str):
 async def _create_or_update_tag_metadata(id: str, hostname: str, workspace: str):
     global TAG_MANAGER
     global TAG_INFO
+    log.debug(f"Creating tag metadata for tags on {hostname} ({id}) for workspace {workspace}")
     tags = []
-    for tag in TAG_INFO:
+    for tag in TAG_INFO.values():
         properties = {
             "minionId": id,
             "displayName": tag["displayName"].format(hostname),
@@ -122,8 +139,9 @@ async def _update_tag_values():
     global TAG_INFO
     _calculate_pending_requests()
     _calculate_quarantine_requests()
-    with TAG_MANAGER.create_writer() as writer:
-        for tag in TAG_INFO:
+    with TAG_MANAGER.create_writer(buffer_size=len(TAG_INFO)) as writer:
+        for tag in TAG_INFO.values():
+            log.debug("Writing tags for beacon on " + tag["path"])
             await writer.write_async(tag["path"], tag["dataType"], tag["value"])
 
 
@@ -137,12 +155,13 @@ def _calculate_quarantine_requests():
 
 def _get_http_configuration() -> HttpConfiguration:
     httpConfigPath = _get_http_master_file()
+    log.debug("Loading HTTP configuration from " + httpConfigPath)
     with open(httpConfigPath, "r") as httpConfigFile:
         httpConfigJson = json.load(httpConfigFile)
         return HttpConfiguration(
             server_uri=httpConfigJson["Uri"],
             api_key=httpConfigJson["ApiKey"],
-            cert_path=httpConfigFile["CertPath"],
+            cert_path=httpConfigJson["CertPath"],
         )
 
 
