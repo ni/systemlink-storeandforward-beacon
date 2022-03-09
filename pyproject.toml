@@ -22,16 +22,11 @@ black = ">=20.8b1"
 
 # Test
 pytest = ">=6.0"
-pytest-cov = ">=3.0"
 
 [[tool.poetry.source]]
 name = "NI PyPI"
 url = "https://pypi.ni.systems"
 default = true
-
-[tool.pytest.ini_options]
-# Test coverage
-addopts = "--cov systemlink-storeandforward-beacon --strict-markers --doctest-modules"
 
 [tool.black]
 line-length = 100
