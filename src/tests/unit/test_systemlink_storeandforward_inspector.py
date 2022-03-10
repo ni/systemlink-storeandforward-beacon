@@ -75,6 +75,57 @@ def test_realRequestTransactionsBuffer_calculatePendingRequests_returnsPending()
     assert result == 0
 
 
+def test_missingQuarantineDirectory_calculateQuaratineRequests_returnsZero():
+    with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
+        result = _systemlink_storeandforward_inspector.calculate_quaratine_requests(tempDir)
+
+        assert result == 0
+
+
+def test_emptyQuarantineDirectory_calculateQuaratineRequests_returnsZero():
+    with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
+        os.mkdir(os.path.join(tempDir, "quarantine"))
+        result = _systemlink_storeandforward_inspector.calculate_quaratine_requests(tempDir)
+
+        assert result == 0
+
+
+def test_requestsQuarantined_calculateQuaratineRequests_returnsQuarantined():
+    with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
+        quarantineDirectory = os.path.join(tempDir, "quarantine")
+        os.mkdir(quarantineDirectory)
+        now = datetime.now()
+        requestTimestamps1 = [
+            now - timedelta(minutes=1),
+            now + timedelta(minutes=1),
+            now + timedelta(minutes=2),
+        ]
+        requestTimestamps2 = [
+            now - timedelta(minutes=6),
+            now - timedelta(minutes=5),
+            now - timedelta(minutes=4),
+        ]
+        requestTimestamps3 = [
+            now + timedelta(minutes=4),
+            now + timedelta(minutes=5),
+            now + timedelta(minutes=6),
+        ]
+        _write_sample_transaction_buffer(quarantineDirectory, requestTimestamps1)
+        _write_sample_transaction_buffer(quarantineDirectory, requestTimestamps2)
+        _write_sample_transaction_buffer(quarantineDirectory, requestTimestamps3)
+
+        result = _systemlink_storeandforward_inspector.calculate_quaratine_requests(tempDir)
+
+        assert result == 9
+
+
+def test_realRequestTransactionsBuffer_calculateQuaratineRequests_returnsQuarantined():
+    storeDirectory = os.path.join(os.path.dirname(__file__), "testmon")
+    result = _systemlink_storeandforward_inspector.calculate_quaratine_requests(storeDirectory)
+
+    assert result == 62
+
+
 def _write_sample_transaction_buffer(directory: str, requestTimestamps: List[datetime]):
     lines = map(
         lambda t: json.dumps({"timestamp": datetime.isoformat(t)}, indent=None) + "\n",
