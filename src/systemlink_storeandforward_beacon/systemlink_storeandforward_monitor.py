@@ -4,12 +4,25 @@ import asyncio
 import json
 import logging
 import os
-import random
+import sys
 from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import quote
 import winreg
 from systemlink.clients.core import HttpConfiguration
 from systemlink.clients.tag import DataType, TagData, TagManager
+
+# Import local libs
+# This file may be loaded out of __pycache__, so the
+# directory of its .py may not be in the search path.
+IMPORT_PATH = os.path.dirname(__file__)
+if IMPORT_PATH.endswith("__pycache__"):
+    IMPORT_PATH = os.path.dirname(IMPORT_PATH)
+sys.path.append(IMPORT_PATH)
+try:
+    import _systemlink_storeandforward_inspector
+finally:
+    # Remove the extra search path that we added to sys.path
+    sys.path.remove(IMPORT_PATH)
 
 log = logging.getLogger(__name__)
 
@@ -146,11 +159,19 @@ async def _update_tag_values():
 
 
 def _calculate_pending_requests():
-    TAG_INFO["pending"]["value"] = random.randint(1, 100)
+    storeDirectory = _get_store_directory()
+    pending = _systemlink_storeandforward_inspector.calculate_pending_requests(storeDirectory)
+    TAG_INFO["pending"]["value"] = pending
 
 
 def _calculate_quarantine_requests():
-    TAG_INFO["quarantine"]["value"] = random.randint(1, 100)
+    storeDirectory = _get_store_directory()
+    quarantined = _systemlink_storeandforward_inspector.calculate_quaratine_requests(storeDirectory)
+    TAG_INFO["quarantine"]["value"] = quarantined
+
+
+def _get_store_directory() -> str:
+    return os.path.join(_get_ni_common_appdata_dir(), "Skyline", "Data", "Store", "testmon")
 
 
 def _get_http_configuration() -> HttpConfiguration:
