@@ -1,15 +1,25 @@
 """SystemLink TestMonitor store and forward health monitor beacon."""
 
 import asyncio
-import json
+import atexit
 import logging
 import os
 import sys
 from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import quote
 import winreg
-from systemlink.clients.core import HttpConfiguration
-from systemlink.clients.tag import DataType, TagData, TagManager
+from systemlink.clientconfig import get_configuration_by_id, HTTP_MASTER_CONFIGURATION_ID
+from systemlink.clients.nitag import (
+    ApiClient,
+    ApiException,
+    Tag,
+    TagListAndMergeFlag,
+    TagsApi,
+    TagUpdate,
+    TagValue,
+    TimestampedTagValue,
+)
+from systemlink.clients.nitag.rest import RESTResponse
 
 # Import local libs
 # This file may be loaded out of __pycache__, so the
@@ -32,10 +42,11 @@ NI_INSTALLERS_REG_KEY_APP_DATA = "NIPUBAPPDATADIR"
 # The Python Event Loop for asynchronous actions
 EVENT_LOOP: asyncio.AbstractEventLoop = None
 
-# The manager for the SystemLink Tags API
-TAG_MANAGER: TagManager = None
+# The client for the SystemLink Tags API
+API_CLIENT: ApiClient = None
 TAG_INFO: Dict[str, Dict[str, Any]] = {}
 
+ATEXIT_REGISTERED = False
 BEACON_INITIALIZED = False
 
 __virtualname__: str = "systemlink_storeandforward_monitor"
@@ -91,9 +102,10 @@ def beacon(config: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def _init_beacon() -> bool:
+    global ATEXIT_REGISTERED
     global BEACON_INITIALIZED
     global EVENT_LOOP
-    global TAG_MANAGER
+    global API_CLIENT
     global TAG_INFO
 
     if BEACON_INITIALIZED:
@@ -102,8 +114,18 @@ def _init_beacon() -> bool:
     if not EVENT_LOOP:
         EVENT_LOOP = asyncio.get_event_loop()
 
-    configuration = _get_http_configuration()
-    TAG_MANAGER = TagManager(configuration)
+    if API_CLIENT:
+        # Always re-initialize the API_CLIENT in case the credentials or
+        # certificate have changed.
+        EVENT_LOOP.run_until_complete(API_CLIENT.close())
+        API_CLIENT = None
+
+    configuration = get_configuration_by_id(HTTP_MASTER_CONFIGURATION_ID, "/nitag", False)
+    API_CLIENT = ApiClient(configuration=configuration)
+
+    if not ATEXIT_REGISTERED:
+        atexit.register(_cleanup_beacon)
+        ATEXIT_REGISTERED = True
 
     minion_id = __grains__["id"]
     hostname = __grains__["host"]
@@ -116,21 +138,42 @@ def _init_beacon() -> bool:
     return True
 
 
-def _setup_tags(tag_info: Dict[str, Dict[str, DataType]], id: str):
+def _cleanup_beacon():
+    global BEACON_INITIALIZED
+    global API_CLIENT
+    global EVENT_LOOP
+
+    if API_CLIENT:
+        # Disable logging when closing the Tag Client. _cleanup_beacon() is
+        # called due to 'atexit.register', and this call can occur after the
+        # logging process has exited. If the logging process has exited, and
+        # it tries to log to the logging queue, the logging queue will block
+        # waiting for send to flush (which will never happen since the
+        # receiving process has exited), which will in turn hang this process
+        # as it is trying to exit.
+        logging.disable(logging.CRITICAL)
+        EVENT_LOOP.run_until_complete(API_CLIENT.close())
+        API_CLIENT = None
+        logging.disable(logging.NOTSET)
+    TAG_INFO.clear()
+    BEACON_INITIALIZED = False
+
+
+def _setup_tags(tag_info: Dict[str, Dict[str, str]], id: str):
     tag_info["pending"] = {
         "path": id + ".TestMonitor.StoreAndForward.Pending",
-        "dataType": DataType.DOUBLE,
+        "type": "DOUBLE",
         "displayName": "{} PENDING REQUESTS TO SEND",
     }
     tag_info["quarantine"] = {
         "path": id + ".TestMonitor.StoreAndForward.Quarantine",
-        "dataType": DataType.DOUBLE,
+        "type": "DOUBLE",
         "displayName": "{} REQUESTS IN QUARANTINE",
     }
 
 
 async def _create_or_update_tag_metadata(id: str, hostname: str, workspace: str):
-    global TAG_MANAGER
+    global API_CLIENT
     global TAG_INFO
     log.debug(f"Creating tag metadata for tags on {hostname} ({id}) for workspace {workspace}")
     tags = []
@@ -143,28 +186,48 @@ async def _create_or_update_tag_metadata(id: str, hostname: str, workspace: str)
             + "/"
             + quote(tag["path"], safe=""),
         }
-        tags.append(TagData(data_type=tag["dataType"], path=tag["path"], properties=properties))
-    await TAG_MANAGER.update_async(tags)
+        tags.append(
+            Tag(type=tag["type"], properties=properties, path=tag["path"], collect_aggregates=True)
+        )
+    tags_and_merge = TagListAndMergeFlag(tags, False)
+    tags_api = TagsApi(api_client=API_CLIENT)
+    response = await tags_api.create_or_update_tags(tags_and_merge, _preload_content=False)
+    if response.status not in (200, 201, 202):
+        data = await response.text()
+        rest_response = RESTResponse(response, data)
+        raise ApiException(http_resp=rest_response)
 
 
 async def _update_tag_values():
-    global TAG_MANAGER
+    global API_CLIENT
     global TAG_INFO
     _calculate_pending_requests()
     _calculate_quarantine_requests()
-    with TAG_MANAGER.create_writer(buffer_size=len(TAG_INFO)) as writer:
-        for tag in TAG_INFO.values():
-            log.debug("Writing tags for beacon on " + tag["path"])
-            await writer.write_async(tag["path"], tag["dataType"], tag["value"])
+    updates = []
+    for tag in TAG_INFO.values():
+        # A timestamp of ``None`` means use the server time.
+        update = TimestampedTagValue(
+            value=TagValue(value=str(tag["value"]), type=tag["type"]), timestamp=None
+        )
+        updates.append(TagUpdate(path=tag["path"], updates=[update]))
+
+    tags_api = TagsApi(api_client=API_CLIENT)
+    response = await tags_api.update_tag_current_values(updates, _preload_content=False)
+    if response.status not in (200, 202):
+        data = await response.text()
+        rest_response = RESTResponse(response, data)
+        raise ApiException(http_resp=rest_response)
 
 
 def _calculate_pending_requests():
+    global TAG_INFO
     storeDirectory = _get_store_directory()
     pending = _systemlink_storeandforward_inspector.calculate_pending_requests(storeDirectory)
     TAG_INFO["pending"]["value"] = pending
 
 
 def _calculate_quarantine_requests():
+    global TAG_INFO
     storeDirectory = _get_store_directory()
     quarantined = _systemlink_storeandforward_inspector.calculate_quaratine_requests(storeDirectory)
     TAG_INFO["quarantine"]["value"] = quarantined
@@ -172,30 +235,6 @@ def _calculate_quarantine_requests():
 
 def _get_store_directory() -> str:
     return os.path.join(_get_ni_common_appdata_dir(), "Skyline", "Data", "Store", "testmon")
-
-
-def _get_http_configuration() -> HttpConfiguration:
-    httpConfigPath = _get_http_master_file()
-    log.debug("Loading HTTP configuration from " + httpConfigPath)
-    with open(httpConfigPath, "r") as httpConfigFile:
-        httpConfigJson = json.load(httpConfigFile)
-        return HttpConfiguration(
-            server_uri=httpConfigJson["Uri"],
-            api_key=httpConfigJson["ApiKey"],
-            cert_path=httpConfigJson["CertPath"],
-        )
-
-
-def _get_http_master_file() -> str:
-    """
-    Return path to the Master HTTP credentials file on the minion.
-
-    @return: Path to Master HTTP credentials file
-    @rtype: str
-    """
-    file_path = _get_ni_common_appdata_dir()
-    file_path = os.path.join(file_path, "Skyline", "HttpConfigurations", "http_master.json")
-    return file_path
 
 
 def _get_ni_common_appdata_dir() -> str:

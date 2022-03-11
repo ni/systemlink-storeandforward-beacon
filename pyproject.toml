@@ -9,9 +9,9 @@ systemlink-storeandforward-beacon = "systemlink-storeandforward-beacon.__main__:
 
 [tool.poetry.dependencies]
 python = "^3.6.2"
-nisystemlink-clients = "^0.1.3"
 salt = "^3004"
 python-dateutil = "^2.8.2"
+systemlink-sdk = "^21.1.0"
 
 [tool.poetry.dev-dependencies]
 # Lint

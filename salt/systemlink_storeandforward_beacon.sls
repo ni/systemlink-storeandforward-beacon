@@ -10,10 +10,6 @@
   file.managed:
     - source: 'salt://systemlink_storeandforward_monitor.conf'
 
-nisystemlink-clients:
-  pip.installed:
-    - name: nisystemlink-clients >= 0.1.3
-
 reboot:
   system.reboot:
     - message: 'System is rebooting now'
