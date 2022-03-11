@@ -7,6 +7,12 @@ to determine how many requests are pending to be forwarded, and how many
 requests have been quarantined due to errors reported from requests to 
 the server.
 
+This example has only been tested on Windows with a default installation
+of SystemLink 2022 Q1 and is provided as is.
+
+For more information see [Salt States](https://docs.saltstack.com/en/latest/topics/tutorials/starting_states.html) 
+and [Salt Beacons](https://docs.saltproject.io/en/latest/topics/beacons/index.html).
+
 ## Installation and configuration
 
 1. Copy the `src/systemlink_storeandforward_beacon` directory and and `salt/systemlink_storeandforward_monitor.conf` file
@@ -24,5 +30,6 @@ the server.
 
 ## Development
 
-`systemlink-storeandforward-beacon` uses [poetry](https://python-poetry.org/) to manage dependencies 
-and Python version 3.6.8, which matches the version of Python included on SystemLink Client installations.
+`systemlink-storeandforward-beacon` uses [poetry](https://python-poetry.org/) 
+to manage dependencies and Python version 3.6.8, which matches the version of
+Python included on SystemLink Client 2022 Q1 installations.
