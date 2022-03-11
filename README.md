@@ -9,13 +9,20 @@ the server.
 
 ## Installation and configuration
 
-1. Copy .py and .conf files to your server's salt root (C:\ProgramData\National Instruments\salt\srv\salt)
-2. Import .sls file as a new state in the SystemLink States web UI
-3. Apply the state to the systems you'd like to monitor
-4. Restart the minions
-5. Verify the tags appear in the SystemLink Tags web UI
+1. Copy the `src/systemlink_storeandforward_beacon` directory and and `salt/systemlink_storeandforward_monitor.conf` file
+   to your server's salt root
+   - Defaults to `C:\ProgramData\National Instruments\salt\srv\salt`
+2. Import `salt/systemlink_storeandforward_beacon.sls` file as a new state in the SystemLink States web UI
+   - Open **System Management** > **States** from the navigation menu
+   - Click the **Import** button in the toolbar
+   - Browse to the .sls file
+3. [Apply the state](https://www.ni.com/documentation/en/systemlink/latest/deployment/deploying-system-states/) to the systems you'd like to monitor
+4. Verify the tags appear in the SystemLink Tag Viewer web UI. See [the SystemLink manual](https://www.ni.com/documentation/en/systemlink/latest/data/troubleshooting-tag-data/) for details.
+   - The tags will have the path `<minion_id>.TestMonitor.StoreAndForward.*`
+5. Create [Alarms](https://www.ni.com/documentation/en/systemlink/latest/manager/monitoring-system-health/) to
+   be notified when the tags exceed limits for your application
 
 ## Development
 
-`systemlink-storeandforward-beacon` uses the standard NI set of tools for development. See [the wiki](https://ni.visualstudio.com/DevCentral/_wiki/wikis/AppCentral.wiki/17456/Making-a-change-to-an-existing-project)
-for information on how to contribute changes.
+`systemlink-storeandforward-beacon` uses [poetry](https://python-poetry.org/) to manage dependencies 
+and Python version 3.6.8, which matches the version of Python included on SystemLink Client installations.
