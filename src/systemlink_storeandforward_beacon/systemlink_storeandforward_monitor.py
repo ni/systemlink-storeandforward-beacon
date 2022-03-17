@@ -130,9 +130,16 @@ def _init_beacon() -> bool:
     minion_id = __grains__["id"]
     hostname = __grains__["host"]
     workspace = __grains__["systemlink_workspace"]
+    retention = __grains__["health_monitoring_retention_type"].upper()
+    historyTTLDays = str(__grains__["health_monitoring_retention_duration_days"])
+    maxHistoryCount = str(__grains__["health_monitoring_retention_max_history_count"])
     log.debug(f"Creating beacon tags on {hostname} ({minion_id}) for workspace {workspace}")
     _setup_tags(TAG_INFO, minion_id)
-    EVENT_LOOP.run_until_complete(_create_or_update_tag_metadata(minion_id, hostname, workspace))
+    EVENT_LOOP.run_until_complete(
+        _create_or_update_tag_metadata(
+            minion_id, hostname, workspace, retention, historyTTLDays, maxHistoryCount
+        )
+    )
 
     BEACON_INITIALIZED = True
     return True
@@ -172,7 +179,14 @@ def _setup_tags(tag_info: Dict[str, Dict[str, str]], id: str):
     }
 
 
-async def _create_or_update_tag_metadata(id: str, hostname: str, workspace: str):
+async def _create_or_update_tag_metadata(
+    id: str,
+    hostname: str,
+    workspace: str,
+    retention: str,
+    historyTTLDays: str,
+    maxHistoryCount: str,
+):
     global API_CLIENT
     global TAG_INFO
     log.debug(f"Creating tag metadata for tags on {hostname} ({id}) for workspace {workspace}")
@@ -181,6 +195,9 @@ async def _create_or_update_tag_metadata(id: str, hostname: str, workspace: str)
         properties = {
             "minionId": id,
             "displayName": tag["displayName"].format(hostname),
+            "nitagRetention": retention,
+            "nitagHistoryTTLDays": historyTTLDays,
+            "nitagMaxHistoryCount": maxHistoryCount,
             "hyperLink": "#tagviewer/tag/"
             + quote(workspace, safe="")
             + "/"
