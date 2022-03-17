@@ -167,10 +167,15 @@ def _cleanup_beacon():
 
 
 def _setup_tags(tag_info: Dict[str, Dict[str, str]], id: str):
-    tag_info["pending"] = {
-        "path": id + ".TestMonitor.StoreAndForward.Pending",
+    tag_info["pending.results"] = {
+        "path": id + ".TestMonitor.StoreAndForward.Pending.Results",
         "type": "DOUBLE",
-        "displayName": "{} PENDING REQUESTS TO SEND",
+        "displayName": "{} PENDING RESULT UPDATES TO SEND",
+    }
+    tag_info["pending.steps"] = {
+        "path": id + ".TestMonitor.StoreAndForward.Pending.Steps",
+        "type": "DOUBLE",
+        "displayName": "{} PENDING STEP UPDATES TO SEND",
     }
     tag_info["quarantine"] = {
         "path": id + ".TestMonitor.StoreAndForward.Quarantine",
@@ -239,8 +244,12 @@ async def _update_tag_values():
 def _calculate_pending_requests():
     global TAG_INFO
     storeDirectory = _get_store_directory()
-    pending = _systemlink_storeandforward_inspector.calculate_pending_requests(storeDirectory)
-    TAG_INFO["pending"]["value"] = pending
+    (
+        pendingResults,
+        pendingSteps,
+    ) = _systemlink_storeandforward_inspector.calculate_pending_requests(storeDirectory)
+    TAG_INFO["pending.results"]["value"] = pendingResults
+    TAG_INFO["pending.steps"]["value"] = pendingSteps
 
 
 def _calculate_quarantine_requests():

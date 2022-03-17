@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import json
 import os
 import tempfile
-from typing import List
+from typing import List, Tuple
 import uuid
 
 from systemlink_storeandforward_beacon import _systemlink_storeandforward_inspector
@@ -12,67 +12,67 @@ def test_emptyDirectory_calculatePendingRequests_returnsZero():
     with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
         result = _systemlink_storeandforward_inspector.calculate_pending_requests(tempDir)
 
-        assert result == 0
+        assert result == (0, 0)
 
 
 def test_noCacheFile_calculatePendingRequests_returnsZero():
     with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
-        _write_sample_transaction_buffer(tempDir, [datetime.today()])
+        _write_sample_transaction_buffer(tempDir, [(datetime.today(), "ResultCreateRequest")])
 
         result = _systemlink_storeandforward_inspector.calculate_pending_requests(tempDir)
 
-        assert result == 0
+        assert result == (0, 0)
 
 
 def test_onlyAlreadyProcessedRequests_calculatePendingRequests_returnsZero():
     with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
         now = datetime.now()
-        requestTimestamps = [
-            now - timedelta(minutes=3),
-            now - timedelta(minutes=2),
-            now - timedelta(minutes=1),
+        requests = [
+            (now - timedelta(minutes=3), "ResultCreateRequest"),
+            (now - timedelta(minutes=2), "ResultUpdateRequest"),
+            (now - timedelta(minutes=1), "ResultUpdateRequest"),
         ]
-        _write_sample_transaction_buffer(tempDir, requestTimestamps)
+        _write_sample_transaction_buffer(tempDir, requests)
         _write_cache_file(tempDir, now)
 
         result = _systemlink_storeandforward_inspector.calculate_pending_requests(tempDir)
 
-        assert result == 0
+        assert result == (0, 0)
 
 
 def test_mixOfProcessedAndPendingRequests_calculatePendingRequests_returnsPending():
     with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
         now = datetime.now()
-        requestTimestamps1 = [
-            now - timedelta(minutes=1),
-            now + timedelta(minutes=1),
-            now + timedelta(minutes=2),
+        request1 = [
+            (now - timedelta(minutes=1), "ResultCreateRequest"),
+            (now + timedelta(minutes=1), "ResultUpdateRequest"),
+            (now + timedelta(minutes=2), "ResultUpdateRequest"),
         ]
-        requestTimestamps2 = [
-            now - timedelta(minutes=6),
-            now - timedelta(minutes=5),
-            now - timedelta(minutes=4),
+        request2 = [
+            (now - timedelta(minutes=6), "ResultCreateRequest"),
+            (now - timedelta(minutes=5), "ResultUpdateRequest"),
+            (now - timedelta(minutes=4), "ResultUpdateRequest"),
         ]
-        requestTimestamps3 = [
-            now + timedelta(minutes=4),
-            now + timedelta(minutes=5),
-            now + timedelta(minutes=6),
+        request3 = [
+            (now + timedelta(minutes=4), "StepCreateRequest"),
+            (now + timedelta(minutes=5), "StepUpdateRequest"),
+            (now + timedelta(minutes=6), "StepUpdateRequest"),
         ]
-        _write_sample_transaction_buffer(tempDir, requestTimestamps1)
-        _write_sample_transaction_buffer(tempDir, requestTimestamps2)
-        _write_sample_transaction_buffer(tempDir, requestTimestamps3)
+        _write_sample_transaction_buffer(tempDir, request1)
+        _write_sample_transaction_buffer(tempDir, request2)
+        _write_sample_transaction_buffer(tempDir, request3)
         _write_cache_file(tempDir, now)
 
         result = _systemlink_storeandforward_inspector.calculate_pending_requests(tempDir)
 
-        assert result == 5
+        assert result == (2, 3)
 
 
 def test_realRequestTransactionsBuffer_calculatePendingRequests_returnsPending():
     storeDirectory = os.path.join(os.path.dirname(__file__), "testmon")
     result = _systemlink_storeandforward_inspector.calculate_pending_requests(storeDirectory)
 
-    assert result == 0
+    assert result == (3, 26)
 
 
 def test_missingQuarantineDirectory_calculateQuaratineRequests_returnsZero():
@@ -95,24 +95,24 @@ def test_requestsQuarantined_calculateQuaratineRequests_returnsQuarantined():
         quarantineDirectory = os.path.join(tempDir, "quarantine")
         os.mkdir(quarantineDirectory)
         now = datetime.now()
-        requestTimestamps1 = [
-            now - timedelta(minutes=1),
-            now + timedelta(minutes=1),
-            now + timedelta(minutes=2),
+        requests1 = [
+            (now - timedelta(minutes=1), "ResultCreateRequest"),
+            (now + timedelta(minutes=1), "ResultUpdateRequest"),
+            (now + timedelta(minutes=2), "ResultUpdateRequest"),
         ]
-        requestTimestamps2 = [
-            now - timedelta(minutes=6),
-            now - timedelta(minutes=5),
-            now - timedelta(minutes=4),
+        request2 = [
+            (now - timedelta(minutes=6), "ResultCreateRequest"),
+            (now - timedelta(minutes=5), "ResultUpdateRequest"),
+            (now - timedelta(minutes=4), "ResultUpdateRequest"),
         ]
-        requestTimestamps3 = [
-            now + timedelta(minutes=4),
-            now + timedelta(minutes=5),
-            now + timedelta(minutes=6),
+        request3 = [
+            (now + timedelta(minutes=4), "StepCreateRequest"),
+            (now + timedelta(minutes=5), "StepUpdateRequest"),
+            (now + timedelta(minutes=6), "StepUpdateRequest"),
         ]
-        _write_sample_transaction_buffer(quarantineDirectory, requestTimestamps1)
-        _write_sample_transaction_buffer(quarantineDirectory, requestTimestamps2)
-        _write_sample_transaction_buffer(quarantineDirectory, requestTimestamps3)
+        _write_sample_transaction_buffer(quarantineDirectory, requests1)
+        _write_sample_transaction_buffer(quarantineDirectory, request2)
+        _write_sample_transaction_buffer(quarantineDirectory, request3)
 
         result = _systemlink_storeandforward_inspector.calculate_quaratine_requests(tempDir)
 
@@ -126,10 +126,13 @@ def test_realRequestTransactionsBuffer_calculateQuaratineRequests_returnsQuarant
     assert result == 62
 
 
-def _write_sample_transaction_buffer(directory: str, requestTimestamps: List[datetime]):
+def _write_sample_transaction_buffer(directory: str, requests: List[Tuple[datetime, str]]):
     lines = map(
-        lambda t: json.dumps({"timestamp": datetime.isoformat(t)}, indent=None) + "\n",
-        requestTimestamps,
+        lambda tuple: json.dumps(
+            {"timestamp": datetime.isoformat(tuple[0]), "type": tuple[1]}, indent=None
+        )
+        + "\n",
+        requests,
     )
     filename = str(uuid.uuid1()) + ".jsonl"
     with open(os.path.join(directory, filename), "x") as fp:
