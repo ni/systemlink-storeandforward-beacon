@@ -8,6 +8,24 @@ import uuid
 from systemlink_storeandforward_beacon import _systemlink_storeandforward_inspector
 
 
+def test_emptyDirectory_calculatePendingFiles_returnsZero():
+    with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
+        result = _systemlink_storeandforward_inspector.calculate_pending_files(tempDir)
+
+        assert result == 0
+
+
+def test_filesPending_calculatePendingFiles_returnsPartialCount():
+    with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
+        _write_sample_pending_file(tempDir)
+        _write_sample_pending_file(tempDir)
+        _write_sample_pending_file(tempDir)
+
+        result = _systemlink_storeandforward_inspector.calculate_pending_files(tempDir)
+
+        assert result == 3
+
+
 def test_emptyDirectory_calculatePendingRequests_returnsZero():
     with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
         result = _systemlink_storeandforward_inspector.calculate_pending_requests(tempDir)
@@ -124,6 +142,12 @@ def test_realRequestTransactionsBuffer_calculateQuaratineRequests_returnsQuarant
     result = _systemlink_storeandforward_inspector.calculate_quaratine_requests(storeDirectory)
 
     assert result == 62
+
+
+def _write_sample_pending_file(directory: str):
+    filename = str(uuid.uuid1()) + ".file"
+    with open(os.path.join(directory, filename), "x") as fp:
+        fp.write("empty")
 
 
 def _write_sample_transaction_buffer(directory: str, requests: List[Tuple[datetime, str]]):

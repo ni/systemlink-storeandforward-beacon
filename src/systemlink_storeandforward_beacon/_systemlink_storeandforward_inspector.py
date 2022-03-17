@@ -10,6 +10,19 @@ _result_transactions = ["ResultCreateRequest", "ResultUpdateRequest"]
 _step_transactions = ["StepCreateRequest", "StepUpdateRequest"]
 
 
+def calculate_pending_files(storeDirectory: str) -> int:
+    """
+    Calculate the pending files to be forwarded in the store and forward directory.
+
+    :param storeDirectory: The data directory store and forward files are stored in.
+    :return: The number of pending files to be uploaded
+    """
+    if not os.path.isdir(storeDirectory):
+        return 0
+
+    return len(glob.glob(os.path.join(storeDirectory, "*.file")))
+
+
 def calculate_pending_requests(storeDirectory: str) -> Tuple[int, int]:
     """
     Calculate the pending requests to be forwarded in the store and forward directory.

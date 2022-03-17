@@ -177,6 +177,11 @@ def _setup_tags(tag_info: Dict[str, Dict[str, str]], id: str):
         "type": "DOUBLE",
         "displayName": "{} PENDING STEP UPDATES TO SEND",
     }
+    tag_info["pending.files"] = {
+        "path": id + ".TestMonitor.StoreAndForward.Pending.Files",
+        "type": "DOUBLE",
+        "displayName": "{} FILES PENDING UPLOAD",
+    }
     tag_info["quarantine"] = {
         "path": id + ".TestMonitor.StoreAndForward.Quarantine",
         "type": "DOUBLE",
@@ -225,6 +230,7 @@ async def _update_tag_values():
     global TAG_INFO
     _calculate_pending_requests()
     _calculate_quarantine_requests()
+    _calculate_pending_files()
     updates = []
     for tag in TAG_INFO.values():
         # A timestamp of ``None`` means use the server time.
@@ -243,7 +249,7 @@ async def _update_tag_values():
 
 def _calculate_pending_requests():
     global TAG_INFO
-    storeDirectory = _get_store_directory()
+    storeDirectory = _get_testmon_store_directory()
     (
         pendingResults,
         pendingSteps,
@@ -254,13 +260,24 @@ def _calculate_pending_requests():
 
 def _calculate_quarantine_requests():
     global TAG_INFO
-    storeDirectory = _get_store_directory()
+    storeDirectory = _get_testmon_store_directory()
     quarantined = _systemlink_storeandforward_inspector.calculate_quaratine_requests(storeDirectory)
     TAG_INFO["quarantine"]["value"] = quarantined
 
 
-def _get_store_directory() -> str:
+def _calculate_pending_files():
+    global TAG_INFO
+    storeDirectory = _get_files_store_directory()
+    files = _systemlink_storeandforward_inspector.calculate_pending_files(storeDirectory)
+    TAG_INFO["pending.files"]["value"] = files
+
+
+def _get_testmon_store_directory() -> str:
     return os.path.join(_get_ni_common_appdata_dir(), "Skyline", "Data", "Store", "testmon")
+
+
+def _get_files_store_directory() -> str:
+    return os.path.join(_get_ni_common_appdata_dir(), "Skyline", "Data", "Store", "file")
 
 
 def _get_ni_common_appdata_dir() -> str:
