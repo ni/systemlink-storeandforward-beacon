@@ -88,7 +88,8 @@ def beacon(config: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             success = _init_beacon()
             if not success:
                 return []
-        EVENT_LOOP.run_until_complete(_update_tag_values())
+        EVENT_LOOP.run_until_complete(_update_fast_tag_values())
+        EVENT_LOOP.run_until_complete(_update_slow_tag_values())
     except Exception as exc:
         log.error(
             'Unexpected exception in "systemlink_storeandforward_monitor beacon": %s',
@@ -136,9 +137,7 @@ def _init_beacon() -> bool:
     log.debug(f"Creating beacon tags on {hostname} ({minion_id}) for workspace {workspace}")
     _setup_tags(TAG_INFO, minion_id)
     EVENT_LOOP.run_until_complete(
-        _create_or_update_tag_metadata(
-            minion_id, hostname, workspace, retention, historyTTLDays, maxHistoryCount
-        )
+        _create_or_update_tag_metadata(minion_id, hostname, workspace, retention, historyTTLDays, maxHistoryCount)
     )
 
     BEACON_INITIALIZED = True
@@ -171,21 +170,49 @@ def _setup_tags(tag_info: Dict[str, Dict[str, str]], id: str):
         "path": id + ".TestMonitor.StoreAndForward.Pending.Results",
         "type": "DOUBLE",
         "displayName": "{} PENDING RESULT UPDATES TO SEND",
+        "fast": False,
     }
     tag_info["pending.steps"] = {
         "path": id + ".TestMonitor.StoreAndForward.Pending.Steps",
         "type": "DOUBLE",
         "displayName": "{} PENDING STEP UPDATES TO SEND",
+        "fast": False,
+    }
+    tag_info["pending.buffer_file_count"] = {
+        "path": id + ".TestMonitor.StoreAndForward.Pending.BufferFileCount",
+        "type": "DOUBLE",
+        "displayName": "{} UPDATES BUFFER FILE COUNT",
+        "fast": True,
+    }
+    tag_info["pending.buffer_file_size"] = {
+        "path": id + ".TestMonitor.StoreAndForward.Pending.BufferFileSizeKiB",
+        "type": "DOUBLE",
+        "displayName": "{} UPDATES BUFFER FILE SIZE IN KiB",
+        "fast": True,
     }
     tag_info["pending.files"] = {
         "path": id + ".TestMonitor.StoreAndForward.Pending.Files",
         "type": "DOUBLE",
         "displayName": "{} FILES PENDING UPLOAD",
+        "fast": True,
     }
     tag_info["quarantine"] = {
         "path": id + ".TestMonitor.StoreAndForward.Quarantine",
         "type": "DOUBLE",
         "displayName": "{} REQUESTS IN QUARANTINE",
+        "fast": False,
+    }
+    tag_info["quarantine.buffer_file_count"] = {
+        "path": id + ".TestMonitor.StoreAndForward.Quarantine.BufferFileCount",
+        "type": "DOUBLE",
+        "displayName": "{} QUARANTINE FILE COUNT",
+        "fast": True,
+    }
+    tag_info["quarantine.buffer_file_size"] = {
+        "path": id + ".TestMonitor.StoreAndForward.Quarantine.BufferFileSizeKiB",
+        "type": "DOUBLE",
+        "displayName": "{} QUARANTINE FILE SIZE IN KiB",
+        "fast": True,
     }
 
 
@@ -208,14 +235,9 @@ async def _create_or_update_tag_metadata(
             "nitagRetention": retention,
             "nitagHistoryTTLDays": historyTTLDays,
             "nitagMaxHistoryCount": maxHistoryCount,
-            "hyperLink": "#tagviewer/tag/"
-            + quote(workspace, safe="")
-            + "/"
-            + quote(tag["path"], safe=""),
+            "hyperLink": "#tagviewer/tag/" + quote(workspace, safe="") + "/" + quote(tag["path"], safe=""),
         }
-        tags.append(
-            Tag(type=tag["type"], properties=properties, path=tag["path"], collect_aggregates=True)
-        )
+        tags.append(Tag(type=tag["type"], properties=properties, path=tag["path"], collect_aggregates=True))
     tags_and_merge = TagListAndMergeFlag(tags, False)
     tags_api = TagsApi(api_client=API_CLIENT)
     response = await tags_api.create_or_update_tags(tags_and_merge, _preload_content=False)
@@ -225,19 +247,17 @@ async def _create_or_update_tag_metadata(
         raise ApiException(http_resp=rest_response)
 
 
-async def _update_tag_values():
+async def _update_fast_tag_values():
     global API_CLIENT
     global TAG_INFO
-    _calculate_pending_requests()
-    _calculate_quarantine_requests()
+    _calculate_forwarding_buffer_stats()
     _calculate_pending_files()
     updates = []
     for tag in TAG_INFO.values():
-        # A timestamp of ``None`` means use the server time.
-        update = TimestampedTagValue(
-            value=TagValue(value=str(tag["value"]), type=tag["type"]), timestamp=None
-        )
-        updates.append(TagUpdate(path=tag["path"], updates=[update]))
+        if tag["fast"]:
+            # A timestamp of ``None`` means use the server time.
+            update = TimestampedTagValue(value=TagValue(value=str(tag["value"]), type=tag["type"]), timestamp=None)
+            updates.append(TagUpdate(path=tag["path"], updates=[update]))
 
     tags_api = TagsApi(api_client=API_CLIENT)
     response = await tags_api.update_tag_current_values(updates, _preload_content=False)
@@ -245,6 +265,43 @@ async def _update_tag_values():
         data = await response.text()
         rest_response = RESTResponse(response, data)
         raise ApiException(http_resp=rest_response)
+
+
+async def _update_slow_tag_values():
+    global API_CLIENT
+    global TAG_INFO
+    _calculate_pending_requests()
+    _calculate_quarantine_requests()
+    updates = []
+    for tag in TAG_INFO.values():
+        if not tag["fast"]:
+            # A timestamp of ``None`` means use the server time.
+            update = TimestampedTagValue(value=TagValue(value=str(tag["value"]), type=tag["type"]), timestamp=None)
+            updates.append(TagUpdate(path=tag["path"], updates=[update]))
+
+    tags_api = TagsApi(api_client=API_CLIENT)
+    response = await tags_api.update_tag_current_values(updates, _preload_content=False)
+    if response.status not in (200, 202):
+        data = await response.text()
+        rest_response = RESTResponse(response, data)
+        raise ApiException(http_resp=rest_response)
+
+
+def _calculate_forwarding_buffer_stats():
+    global TAG_INFO
+    storeDirectory = _get_testmon_store_directory()
+    (
+        pendingFileCount,
+        pendingFileSize,
+    ) = _systemlink_storeandforward_inspector.calculate_pending_request_size(storeDirectory)
+    (
+        quarantineFileCount,
+        quarantineFileSize,
+    ) = _systemlink_storeandforward_inspector.calculate_quaratine_size(storeDirectory)
+    TAG_INFO["pending.buffer_file_count"]["value"] = pendingFileCount
+    TAG_INFO["pending.buffer_file_size"]["value"] = pendingFileSize
+    TAG_INFO["quarantine.buffer_file_count"]["value"] = quarantineFileCount
+    TAG_INFO["quarantine.buffer_file_size"]["value"] = quarantineFileSize
 
 
 def _calculate_pending_requests():
@@ -288,8 +345,6 @@ def _get_ni_common_appdata_dir() -> str:
     :return: The National Instruments Common Application Data Directory.
     :rtype: str
     """
-    with winreg.OpenKey(
-        winreg.HKEY_LOCAL_MACHINE, NI_INSTALLERS_REG_PATH, 0, winreg.KEY_READ
-    ) as hkey:
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, NI_INSTALLERS_REG_PATH, 0, winreg.KEY_READ) as hkey:
         (appdata_dir, _) = winreg.QueryValueEx(hkey, NI_INSTALLERS_REG_KEY_APP_DATA)
         return appdata_dir

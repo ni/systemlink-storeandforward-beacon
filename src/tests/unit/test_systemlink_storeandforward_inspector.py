@@ -26,6 +26,30 @@ def test_filesPending_calculatePendingFiles_returnsPartialCount():
         assert result == 3
 
 
+def test_realRequestTransactionsBuffer_calculatePendingRequestSize_returnsZero():
+    with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
+        result = _systemlink_storeandforward_inspector.calculate_pending_request_size(tempDir)
+
+    assert result == (0, 0)
+
+
+def test_someRequestsPending_calculatePendingRequestSize_returnsCountAndSize():
+    with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
+        now = datetime.now()
+        requests = [
+            (now - timedelta(minutes=3), "ResultCreateRequest"),
+            (now - timedelta(minutes=2), "ResultUpdateRequest"),
+            (now - timedelta(minutes=1), "ResultUpdateRequest"),
+        ]
+        _write_sample_transaction_buffer(tempDir, requests)
+        _write_cache_file(tempDir, now)
+
+        (count, size) = _systemlink_storeandforward_inspector.calculate_pending_request_size(tempDir)
+
+        assert count == 1
+        assert size > 0
+
+
 def test_emptyDirectory_calculatePendingRequests_returnsZero():
     with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
         result = _systemlink_storeandforward_inspector.calculate_pending_requests(tempDir)
@@ -93,6 +117,21 @@ def test_realRequestTransactionsBuffer_calculatePendingRequests_returnsPending()
     assert result == (3, 26)
 
 
+def test_missingQuarantineDirectory_calculateQuaratineSize_returnsZero():
+    with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
+        result = _systemlink_storeandforward_inspector.calculate_quaratine_size(tempDir)
+
+        assert result == (0, 0)
+
+
+def test_emptyQuarantineDirectory_calculateQuaratineSize_returnsZero():
+    with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
+        os.mkdir(os.path.join(tempDir, "quarantine"))
+        result = _systemlink_storeandforward_inspector.calculate_quaratine_size(tempDir)
+
+        assert result == (0, 0)
+
+
 def test_missingQuarantineDirectory_calculateQuaratineRequests_returnsZero():
     with tempfile.TemporaryDirectory(prefix="test_") as tempDir:
         result = _systemlink_storeandforward_inspector.calculate_quaratine_requests(tempDir)
@@ -152,10 +191,7 @@ def _write_sample_pending_file(directory: str):
 
 def _write_sample_transaction_buffer(directory: str, requests: List[Tuple[datetime, str]]):
     lines = map(
-        lambda tuple: json.dumps(
-            {"timestamp": datetime.isoformat(tuple[0]), "type": tuple[1]}, indent=None
-        )
-        + "\n",
+        lambda tuple: json.dumps({"timestamp": datetime.isoformat(tuple[0]), "type": tuple[1]}, indent=None) + "\n",
         requests,
     )
     filename = str(uuid.uuid1()) + ".jsonl"
