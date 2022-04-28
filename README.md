@@ -28,6 +28,10 @@ and [Salt Beacons](https://docs.saltproject.io/en/latest/topics/beacons/index.ht
 5. Create [Alarms](https://www.ni.com/documentation/en/systemlink/latest/manager/monitoring-system-health/) to
    be notified when the tags exceed limits for your application
 
+### Uninstallation
+
+Import `salt/uninstall_systemlink_storeandforward_beacon.sls` file as a new state and run it on the systems you wish to uninstall the beacon from.
+
 ## Development
 
 `systemlink-storeandforward-beacon` uses [poetry](https://python-poetry.org/) 
