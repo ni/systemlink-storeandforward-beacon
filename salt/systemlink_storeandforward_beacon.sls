@@ -10,9 +10,7 @@
   file.managed:
     - source: 'salt://systemlink_storeandforward_monitor.conf'
 
-reboot:
-  system.reboot:
-    - message: 'System is rebooting now'
-    - timeout: 10
-    - in_seconds: true
-    - only_on_pending_reboot: False
+restart_saltminion:
+  cmd.run:
+    - name: "start -WindowStyle Hidden powershell { Start-Sleep -s 20; Restart-Service nisaltminion -Force }"
+    - shell: powershell
