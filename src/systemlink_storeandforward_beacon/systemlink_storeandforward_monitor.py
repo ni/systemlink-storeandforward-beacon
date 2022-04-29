@@ -8,6 +8,7 @@ import sys
 from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import quote
 import winreg
+import psutil
 from systemlink.clientconfig import get_configuration_by_id, HTTP_MASTER_CONFIGURATION_ID
 from systemlink.clients.nitag import (
     ApiClient,
@@ -166,6 +167,12 @@ def _cleanup_beacon():
 
 
 def _setup_tags(tag_info: Dict[str, Dict[str, str]], id: str):
+    tag_info["service_status"] = {
+        "path": id + ".TestMonitor.StoreAndForward.ServiceStatus",
+        "type": "STRING",
+        "displayName": "{} FORWARDING SERVICE STATUS",
+        "fast": True,
+    }
     tag_info["pending.results"] = {
         "path": id + ".TestMonitor.StoreAndForward.Pending.Results",
         "type": "DOUBLE",
@@ -250,6 +257,7 @@ async def _create_or_update_tag_metadata(
 async def _update_fast_tag_values():
     global API_CLIENT
     global TAG_INFO
+    _update_service_status()
     _calculate_forwarding_buffer_stats()
     _calculate_pending_files()
     updates = []
@@ -285,6 +293,18 @@ async def _update_slow_tag_values():
         data = await response.text()
         rest_response = RESTResponse(response, data)
         raise ApiException(http_resp=rest_response)
+
+
+def _update_service_status():
+    global TAG_INFO
+    TAG_INFO["service_status"]["value"] = "unknown"
+    try:
+        service = psutil.win_service_get("nisystemlinkforwarding")
+        TAG_INFO["service_status"]["value"] = service.status()
+    except psutil.NoSuchProcess:
+        TAG_INFO["service_status"]["value"] = "missing"
+    except Exception as ex:
+        log.error("Failed to get nisystemlinkforwarding service information. " + str(ex))
 
 
 def _calculate_forwarding_buffer_stats():
