@@ -1,0 +1,255 @@
+﻿<Solution xmlns:i="http://www.w3.org/2001/XMLSchema-instance" z:Id="i1" xmlns:z="http://schemas.microsoft.com/2003/10/Serialization/" xmlns="http://schemas.datacontract.org/2004/07/NationalInstruments.PackageBuilder.Engine">
+    <Name>systemlink_storeandforward_beacon</Name>
+    <SourceItems>
+        <SourceItem z:Id="i2">
+            <PluginConfigurationOptions />
+            <RelativePath>..\salt\systemlink_storeandforward_monitor.conf</RelativePath>
+            <DependentItems />
+            <IsDiscoverable>true</IsDiscoverable>
+        </SourceItem>
+        <SourceItem z:Id="i3">
+            <PluginConfigurationOptions />
+            <RelativePath>..\src\systemlink_storeandforward_beacon\__init__.py</RelativePath>
+            <DependentItems />
+            <IsDiscoverable>true</IsDiscoverable>
+        </SourceItem>
+        <SourceItem z:Id="i4">
+            <PluginConfigurationOptions />
+            <RelativePath>..\src\systemlink_storeandforward_beacon\_systemlink_storeandforward_inspector.py</RelativePath>
+            <DependentItems />
+            <IsDiscoverable>true</IsDiscoverable>
+        </SourceItem>
+        <SourceItem z:Id="i5">
+            <PluginConfigurationOptions />
+            <RelativePath>..\src\systemlink_storeandforward_beacon\systemlink_storeandforward_monitor.py</RelativePath>
+            <DependentItems />
+            <IsDiscoverable>true</IsDiscoverable>
+        </SourceItem>
+        <SourceItem z:Id="i6">
+            <PluginConfigurationOptions />
+            <RelativePath>..\src\systemlink_storeandforward_beacon</RelativePath>
+            <DependentItems>
+                <SourceItem z:Ref="i5" />
+                <SourceItem z:Ref="i4" />
+                <SourceItem z:Ref="i3" />
+            </DependentItems>
+            <IsDiscoverable>true</IsDiscoverable>
+        </SourceItem>
+    </SourceItems>
+    <InputSourceItems>
+        <SourceItem z:Ref="i6" />
+        <SourceItem z:Ref="i2" />
+    </InputSourceItems>
+    <Distributions>
+        <Distribution z:Id="i7" i:type="Package">
+            <DistributionItems>
+                <DistributionItem z:Id="i8" i:type="DistributionDirectoryItem">
+                    <DestinationRelativePath>[ProgramData]\National Instruments</DestinationRelativePath>
+                    <Name>National Instruments</Name>
+                    <SourceItem i:nil="true" />
+                </DistributionItem>
+                <DistributionItem z:Id="i9" i:type="DistributionDirectoryItem">
+                    <DestinationRelativePath>[ProgramData]\National Instruments\salt</DestinationRelativePath>
+                    <Name>salt</Name>
+                    <SourceItem i:nil="true" />
+                </DistributionItem>
+                <DistributionItem z:Id="i10" i:type="DistributionDirectoryItem">
+                    <DestinationRelativePath>[ProgramData]\National Instruments\salt\var</DestinationRelativePath>
+                    <Name>var</Name>
+                    <SourceItem i:nil="true" />
+                </DistributionItem>
+                <DistributionItem z:Id="i11" i:type="DistributionDirectoryItem">
+                    <DestinationRelativePath>[ProgramData]\National Instruments\salt\var\extmods</DestinationRelativePath>
+                    <Name>extmods</Name>
+                    <SourceItem i:nil="true" />
+                </DistributionItem>
+                <DistributionItem z:Id="i12" i:type="DistributionDirectoryItem">
+                    <DestinationRelativePath>[ProgramData]\National Instruments\salt\var\extmods\beacons</DestinationRelativePath>
+                    <Name>beacons</Name>
+                    <SourceItem i:nil="true" />
+                </DistributionItem>
+                <DistributionItem z:Id="i13" i:type="DistributionFileItem">
+                    <DestinationRelativePath>[ProgramData]\National Instruments\salt\var\extmods\beacons\systemlink_storeandforward_monitor.py</DestinationRelativePath>
+                    <Name>systemlink_storeandforward_monitor.py</Name>
+                    <SourceItem z:Ref="i5" />
+                    <PluginConfigurationOptions />
+                    <ProcessDuringStaging>true</ProcessDuringStaging>
+                </DistributionItem>
+                <DistributionItem z:Id="i14" i:type="DistributionFileItem">
+                    <DestinationRelativePath>[ProgramData]\National Instruments\salt\var\extmods\beacons\_systemlink_storeandforward_inspector.py</DestinationRelativePath>
+                    <Name>_systemlink_storeandforward_inspector.py</Name>
+                    <SourceItem z:Ref="i4" />
+                    <PluginConfigurationOptions />
+                    <ProcessDuringStaging>true</ProcessDuringStaging>
+                </DistributionItem>
+                <DistributionItem z:Id="i15" i:type="DistributionDirectoryItem">
+                    <DestinationRelativePath>[ProgramData]\National Instruments\salt\conf</DestinationRelativePath>
+                    <Name>conf</Name>
+                    <SourceItem i:nil="true" />
+                </DistributionItem>
+                <DistributionItem z:Id="i16" i:type="DistributionDirectoryItem">
+                    <DestinationRelativePath>[ProgramData]\National Instruments\salt\conf\minion.d</DestinationRelativePath>
+                    <Name>minion.d</Name>
+                    <SourceItem i:nil="true" />
+                </DistributionItem>
+                <DistributionItem z:Id="i17" i:type="DistributionFileItem">
+                    <DestinationRelativePath>[ProgramData]\National Instruments\salt\conf\minion.d\systemlink_storeandforward_monitor.conf</DestinationRelativePath>
+                    <Name>systemlink_storeandforward_monitor.conf</Name>
+                    <SourceItem z:Ref="i2" />
+                    <PluginConfigurationOptions />
+                    <ProcessDuringStaging>true</ProcessDuringStaging>
+                </DistributionItem>
+            </DistributionItems>
+            <Name>NI SystemLink Store and Forward Beacon</Name>
+            <OutputDirectory>Packages</OutputDirectory>
+            <PluginConfigurationOptions>
+                <ConfigurationOption z:Id="i18">
+                    <Definition z:Id="i19">
+                        <Description>Publish LabVIEW NXG projects as examples or templates.</Description>
+                        <Name>Publish examples to LabVIEW NXG</Name>
+                    </Definition>
+                    <HasDefaultValues>true</HasDefaultValues>
+                    <Value z:Id="i20" i:type="DialogConfigurationOptionValue">
+                        <Values>
+                            <ConfigurationOptionValue z:Id="i21" xmlns:d8p1="http://schemas.datacontract.org/2004/07/NationalInstruments.PackageBuilder.Plugins.LabVIEWNXG" i:type="d8p1:LauncherContentConfigurationOptionValue">
+                                <d8p1:Value z:Id="i22" i:type="d8p1:LauncherRoot">
+                                    <d8p1:Children />
+                                </d8p1:Value>
+                            </ConfigurationOptionValue>
+                        </Values>
+                    </Value>
+                </ConfigurationOption>
+            </PluginConfigurationOptions>
+            <PrebuildAnalysisEnabled>true</PrebuildAnalysisEnabled>
+            <Architecture>windows_all</Architecture>
+            <AutoIncrementVersion>Update</AutoIncrementVersion>
+            <BuildStatus z:Id="i23">
+                <BuildEverSuccessful>true</BuildEverSuccessful>
+                <FileName>ni-systemlink-storeandforward-beacon_21.0.0.0_windows_all.nipkg</FileName>
+                <Version>21.0.0.0</Version>
+            </BuildStatus>
+            <CompanyName>MyCompany</CompanyName>
+            <CustomExecutes>
+                <CustomExecute z:Id="i24">
+                    <Arguments>Restart-Service nisaltminion -Force</Arguments>
+                    <ExeName>WindowsPowerShell\v1.0\powershell.exe</ExeName>
+                    <HideConsoleWindow>true</HideConsoleWindow>
+                    <IgnoreErrors>true</IgnoreErrors>
+                    <RootLogicalName>[System (32-bit)]</RootLogicalName>
+                    <Schedule>Postall</Schedule>
+                    <Step>Install</Step>
+                    <Wait>false</Wait>
+                </CustomExecute>
+                <CustomExecute z:Id="i25">
+                    <Arguments>Restart-Service nisaltminion -Force</Arguments>
+                    <ExeName>WindowsPowerShell\v1.0\powershell.exe</ExeName>
+                    <HideConsoleWindow>true</HideConsoleWindow>
+                    <IgnoreErrors>true</IgnoreErrors>
+                    <RootLogicalName>[System (32-bit)]</RootLogicalName>
+                    <Schedule>Postall</Schedule>
+                    <Step>Uninstall</Step>
+                    <Wait>false</Wait>
+                </CustomExecute>
+            </CustomExecutes>
+            <DisplayName>NI SystemLink Store and Forward Beacon</DisplayName>
+            <FileName>ni-systemlink-storeandforward-beacon_21.0.1.0_windows_all.nipkg</FileName>
+            <Homepage>https://github.com/ni/systemlink-storeandforward-beacon</Homepage>
+            <MaintainerEmail>support@ni.com</MaintainerEmail>
+            <MaintainerName>National Instruments</MaintainerName>
+            <Messages xmlns:d4p1="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />
+            <PackageName>ni-systemlink-storeandforward-beacon</PackageName>
+            <PackageRelationships>
+                <PackageRelationship z:Id="i26">
+                    <Constraint>LaterOrEqual</Constraint>
+                    <DisplayName>NI SystemLink Forwarding Service</DisplayName>
+                    <PackageName>ni-systemlink-forwarding-service</PackageName>
+                    <Relation>Depends</Relation>
+                    <Version>21.0.0.0</Version>
+                    <VersionType>Custom</VersionType>
+                </PackageRelationship>
+                <PackageRelationship z:Id="i27">
+                    <Constraint>LaterOrEqual</Constraint>
+                    <DisplayName>NI SystemLink Forwarding Service</DisplayName>
+                    <PackageName>ni-systemlink-forwarding-service</PackageName>
+                    <Relation>Supplements</Relation>
+                    <Version>21.0.0.0</Version>
+                    <VersionType>Custom</VersionType>
+                </PackageRelationship>
+            </PackageRelationships>
+            <ProductName>MyProduct</ProductName>
+            <Section>Utilities</Section>
+            <Synopsis>SaltStack beacon for monitoring the health of the SystemLink Client store and forward feature</Synopsis>
+            <Version>21.0.1.0</Version>
+        </Distribution>
+    </Distributions>
+    <Feeds />
+    <DistributionGroups>
+        <DistributionGroup z:Id="i28">
+            <Distributions>
+                <Distribution z:Ref="i7" />
+            </Distributions>
+            <Name>Distribution Group</Name>
+            <PrebuildAnalysisEnabled>true</PrebuildAnalysisEnabled>
+            <StageDirectory>ProcessingStage</StageDirectory>
+        </DistributionGroup>
+    </DistributionGroups>
+    <TestStandMode>true</TestStandMode>
+    <PluginConfigurationOptions>
+        <ConfigurationOption z:Id="i29">
+            <Definition z:Id="i30">
+                <Description i:nil="true" />
+                <Name>TestStand Options</Name>
+            </Definition>
+            <HasDefaultValues>true</HasDefaultValues>
+            <Value z:Id="i31" i:type="DialogConfigurationOptionValue">
+                <Values>
+                    <ConfigurationOptionValue z:Id="i32" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i33" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i34" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i35" i:type="StringConfigurationOptionValue">
+                        <Value />
+                    </ConfigurationOptionValue>
+                    <ConfigurationOptionValue z:Id="i36" i:type="StringConfigurationOptionValue">
+                        <Value>SupportVIs</Value>
+                    </ConfigurationOptionValue>
+                    <ConfigurationOptionValue z:Id="i37" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i38" i:type="StringConfigurationOptionValue">
+                        <Value />
+                    </ConfigurationOptionValue>
+                    <ConfigurationOptionValue z:Id="i39" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i40" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i41" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i42" i:type="BooleanConfigurationOptionValue">
+                        <Value>true</Value>
+                    </ConfigurationOptionValue>
+                    <ConfigurationOptionValue z:Id="i43" i:type="BooleanConfigurationOptionValue">
+                        <Value>true</Value>
+                    </ConfigurationOptionValue>
+                    <ConfigurationOptionValue z:Id="i44" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i45" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i46" i:type="PathConfigurationOptionValue">
+                        <RelativePath />
+                    </ConfigurationOptionValue>
+                    <ConfigurationOptionValue z:Id="i47" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i48" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i49" i:type="StringConfigurationOptionValue">
+                        <Value>[BootVolume]</Value>
+                    </ConfigurationOptionValue>
+                    <ConfigurationOptionValue z:Id="i50" i:type="StringConfigurationOptionValue">
+                        <Value />
+                    </ConfigurationOptionValue>
+                    <ConfigurationOptionValue z:Id="i51" i:type="StringConfigurationOptionValue">
+                        <Value />
+                    </ConfigurationOptionValue>
+                    <ConfigurationOptionValue z:Id="i52" i:type="StringConfigurationOptionValue">
+                        <Value />
+                    </ConfigurationOptionValue>
+                    <ConfigurationOptionValue z:Id="i53" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i54" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i55" i:type="BooleanConfigurationOptionValue" />
+                    <ConfigurationOptionValue z:Id="i56" i:type="BooleanConfigurationOptionValue" />
+                </Values>
+            </Value>
+        </ConfigurationOption>
+    </PluginConfigurationOptions>
+</Solution>
