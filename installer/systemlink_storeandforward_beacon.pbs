@@ -103,22 +103,6 @@
             <Name>NI SystemLink Store and Forward Beacon</Name>
             <OutputDirectory>Packages</OutputDirectory>
             <PluginConfigurationOptions>
-                <ConfigurationOption z:Id="i18">
-                    <Definition z:Id="i19">
-                        <Description>Publish LabVIEW NXG projects as examples or templates.</Description>
-                        <Name>Publish examples to LabVIEW NXG</Name>
-                    </Definition>
-                    <HasDefaultValues>true</HasDefaultValues>
-                    <Value z:Id="i20" i:type="DialogConfigurationOptionValue">
-                        <Values>
-                            <ConfigurationOptionValue z:Id="i21" xmlns:d8p1="http://schemas.datacontract.org/2004/07/NationalInstruments.PackageBuilder.Plugins.LabVIEWNXG" i:type="d8p1:LauncherContentConfigurationOptionValue">
-                                <d8p1:Value z:Id="i22" i:type="d8p1:LauncherRoot">
-                                    <d8p1:Children />
-                                </d8p1:Value>
-                            </ConfigurationOptionValue>
-                        </Values>
-                    </Value>
-                </ConfigurationOption>
             </PluginConfigurationOptions>
             <PrebuildAnalysisEnabled>true</PrebuildAnalysisEnabled>
             <Architecture>windows_all</Architecture>
@@ -128,7 +112,7 @@
                 <FileName>ni-systemlink-storeandforward-beacon_21.0.0.0_windows_all.nipkg</FileName>
                 <Version>21.0.0.0</Version>
             </BuildStatus>
-            <CompanyName>MyCompany</CompanyName>
+            <CompanyName>National Instruments</CompanyName>
             <CustomExecutes>
                 <CustomExecute z:Id="i24">
                     <Arguments>Restart-Service nisaltminion -Force</Arguments>
