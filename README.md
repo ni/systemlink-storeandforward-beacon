@@ -4,18 +4,20 @@ SystemLink Store and Forward Beacon is a SaltStack beacon for monitoring
 the health of the SystemLink Client store and forward feature. The beacon
 will monitor folders involved with the operation of store and forward
 to determine how many requests are pending to be forwarded, and how many
-requests have been quarantined due to errors reported from requests to 
+requests have been quarantined due to errors reported from requests to
 the server.
 
 This example has only been tested on Windows with a default installation
 of SystemLink 2022 Q1 and is provided as is.
 
-For more information see [Salt States](https://docs.saltstack.com/en/latest/topics/tutorials/starting_states.html) 
+For more information see [Salt States](https://docs.saltstack.com/en/latest/topics/tutorials/starting_states.html)
 and [Salt Beacons](https://docs.saltproject.io/en/latest/topics/beacons/index.html).
 
 ## Installation
 
 ### Using NI Package (Recommended)
+
+Requires NI Package Manager 20.0.0 or later on the client system.
 
 1. [Upload](https://www.ni.com/docs/en-US/bundle/deploying-applications-clients-systemlink-2021-r2/page/enabling-client-access-to-packages.html) `ni-systemlink-storeandforward-beacon_<version>_windows_all.nipkg` to a feed in SystemLink Package Repository.
 2. [Deploy](https://www.ni.com/docs/en-US/bundle/deploying-applications-clients-systemlink-2021-r2/page/deploying-packages.html) the **NI SystemLink Store and Forward Beacon** package to the client.
@@ -50,8 +52,9 @@ Import `salt/uninstall_systemlink_storeandforward_beacon.sls` file as a new stat
 
 ## Development
 
-`systemlink-storeandforward-beacon` uses [poetry](https://python-poetry.org/) 
+`systemlink-storeandforward-beacon` uses [poetry](https://python-poetry.org/)
 to manage dependencies and Python version 3.6.8, which matches the version of
 Python included on SystemLink Client 2022 Q1 installations.
 
-The package can be built using [NI Package Builder](https://www.ni.com/en-us/support/downloads/software-products/download.ni-package-builder.html#367057).
+The package can be built using [NI Package Builder 20.0.0](https://www.ni.com/en-us/support/downloads/software-products/download.ni-package-builder.html#367057).
+Using a newer version of Package Builder will require an newer version of NI Package Manager on the client system.
